@@ -19,7 +19,8 @@ public class TimedEffectState
         Running,
         Paused,
         Finished,
-        Errored
+        Errored,
+        Declined
     }
 
     public EffectState State { get; private set; } = EffectState.NotStarted;
@@ -76,8 +77,15 @@ public class TimedEffectState
             try
             {
                 response = Effect.Start(Request);
-                TimeRemaining = Duration;
-                State = EffectState.Running;
+                if (response.status == EffectStatus.Success)
+                {
+                    TimeRemaining = Duration;
+                    State = EffectState.Running;
+                }
+                else
+                {
+                    State = EffectState.Declined;
+                }
             }
             catch (Exception e)
             {
@@ -175,7 +183,7 @@ public class TimedEffectState
         {
             // ReSharper disable once AssignmentInConditionalExpression
             while (!(locked = TryGetLock())) yield return null;
-            if (State == EffectState.Finished) yield break;
+            if (State == EffectState.Finished || State == EffectState.Declined) yield break;
 
             try
             {
